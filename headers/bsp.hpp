@@ -9,6 +9,8 @@
 #define indexof(SIZE, ELEMENT) ELEMENT / SIZE
 #define CLAMP(x, min, max)  \
     ( (x) > (max) ? (max) : ( (x) < (min) ? (min) : (x) ) )
+#define OFFSETOF(TYPE, MEMBER)  \
+    (&((TYPE*)0)->MEMBER)
 
 struct lump_t
 {
@@ -250,7 +252,7 @@ public:
     // Overwrite the currently selected lump with a new one.
     // Does not affect write pointer.
     void SetLump(const lump_t& new_lump) {
-        SetWritePtr((ssize_t)(&((dheader_t*)0)->lumps[lump_id]));
+        SetWritePtr((ssize_t)OFFSETOF(dheader_t, lumps[lump_id]));
         lump = new_lump;
         Write(&new_lump, sizeof(lump_t));
         RevertWritePtr();
