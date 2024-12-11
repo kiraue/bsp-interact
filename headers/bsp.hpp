@@ -9,8 +9,6 @@
 #define indexof(SIZE, ELEMENT) ELEMENT / SIZE
 #define CLAMP(x, min, max)  \
     ( (x) > (max) ? (max) : ( (x) < (min) ? (min) : (x) ) )
-#define OFFSETOF(TYPE, MEMBER)  \
-    (&((TYPE*)0)->MEMBER)
 
 struct lump_t
 {
@@ -34,20 +32,20 @@ struct dheader_t
 
 struct dgamelump_t
 {
-	int             id;
-	unsigned short  flags;
-	unsigned short  version;
-	int             fileofs;
-	int             filelen;
+	int             id;        // gamelump ID
+	unsigned short  flags;     // flags
+	unsigned short  version;   // gamelump version
+	int             fileofs;   // offset to this gamelump
+	int             filelen;   // length
 };
 
 struct dgamelumpheader_t
 {
-	int lumpCount;
+	int lumpCount;  // number of game lumps
 	dgamelump_t gamelump[];
 };
 
-// TODO: add more handling for the game lump
+// TODO: add handling for the game lump
 class Bsp : public File
 {
 private:
@@ -55,8 +53,8 @@ private:
     lump_t lump;
     size_t lumpdata_size;
     size_t lumpdata_off;
+    size_t lumpdata_num;
     size_t lumpdata_remain[2]; // How much remains in the lump that hasnt been read/written yet
-    // Access with lumpdata_remain[READ] or lumpdata_remain[WRITE]
     dheader_t *header;
     dgamelumpheader_t *gameheader;
 
@@ -66,13 +64,13 @@ public:
         header = new dheader_t;
         Read(header);
         SetReadPtr(header->lumps[LUMP_GAME_LUMP].fileofs);
-        Read<char>((char*)gameheader, header->lumps[LUMP_GAME_LUMP].filelen);
+        gameheader = (dgamelumpheader_t *)(new char[header->lumps[LUMP_GAME_LUMP].filelen]);
+        Read<char>((char *)gameheader, header->lumps[LUMP_GAME_LUMP].filelen);
         RevertReadPtr();
         lump_id = LUMP_ENTITIES;
-        lumpdata_size = header->lumps[LUMP_ENTITIES].filelen;
-        lumpdata_off = header->lumps[LUMP_ENTITIES].fileofs;
-        lumpdata_remain[READ] = lumpdata_remain[WRITE] = lumpdata_size;
-        memset(&lump, 0, sizeof(lump_t));
+        lump = header->lumps[LUMP_ENTITIES];
+        lumpdata_off = lump.fileofs;
+        lumpdata_remain[READ] = lumpdata_remain[WRITE] = lumpdata_num = lumpdata_size = lump.filelen;
     }
 
     ~Bsp()
@@ -83,17 +81,11 @@ public:
         gameheader = nullptr;
         lumpdata_size = 0;
         lumpdata_off = 0;
+        lumpdata_num = 0;
         lump_id = 0;
         memset(lumpdata_remain, 0, sizeof(size_t[2]));
         memset(&lump, 0, sizeof(lump_t));
     }
-
-    enum
-    {
-        LITTLE_ENDIAN = 1,
-        BIG_ENDIAN = 2,
-        UNKNOWN = 3,
-    };
 
     enum
     {
@@ -175,19 +167,17 @@ public:
         LUMP_DISP_MULTIBLEND
     };
 
-    constexpr char CheckIdent() const {
-        if (header->ident == IDBSPHEADER)
-            return LITTLE_ENDIAN;
-        if (header->ident == IDPSBHEADER)
-            return BIG_ENDIAN;
-        return UNKNOWN;
+    constexpr int GetIdent() const {
+        return header->ident;
     }
 
-    inline constexpr void SelectLump(char n) {
+    template<typename T>
+    constexpr void SelectLump(char n) {
         lump_id = n;
         lump = header->lumps[n];
         lumpdata_size = lump.filelen;
         lumpdata_off = lump.fileofs;
+        lumpdata_num = lumpdata_size / sizeof(T);
         lumpdata_remain[READ] = lumpdata_remain[WRITE] = lumpdata_size;
         SetReadPtr(lumpdata_off);
         SetWritePtr(lumpdata_off);
@@ -197,9 +187,8 @@ public:
         return lumpdata_size;
     }
 
-    template<typename T>
-    inline constexpr int GetLumpElementCount(T type) const {
-        return lumpdata_size / sizeof(T);
+    inline constexpr int GetLumpElementCount() const {
+        return lumpdata_num;
     }
 
     template<typename T, size_t elements>
@@ -208,9 +197,10 @@ public:
     // Returns the amount of bytes read.
     // Value can be less than expected since this function will make sure to not read data outside of the range of the lump.
     // This does increase the read pointer by the correct amount.
-    inline constexpr size_t ReadLumpElements(const T *buffer, size_t offset = 0) {
-        offset = CLAMP(offset, 0, indexof(sizeof(T), lumpdata_remain[READ]));
-        size_t read = Read(buffer, CLAMP(elements, 0, indexof(sizeof(T), lumpdata_remain[READ] - arraysize(sizeof(T), offset))), offset);
+    constexpr size_t ReadLumpElements(const T *buffer, size_t offset = 0) {
+        size_t elem_remain = lumpdata_remain[READ] / sizeof(T);
+        offset = CLAMP(offset, 0, elem_remain);
+        size_t read = Read(buffer, CLAMP(elements, 0, elem_remain - offset), offset);
         lumpdata_remain[READ] -= read;
         return read;
     }
@@ -223,8 +213,9 @@ public:
     // Value can be less than expected since this function will make sure to not write data outside of the range of the lump.
     // This does increase the write pointer by the correct amount.
     constexpr size_t WriteLumpElements(const T *buffer, size_t offset = 0) {
-        offset = CLAMP(offset, 0, indexof(sizeof(T), lumpdata_remain[WRITE]));
-        size_t written = Write(buffer, CLAMP(elements, 0, indexof(sizeof(T), lumpdata_remain[WRITE] - arraysize(sizeof(T), offset))), offset);
+        size_t elem_remain = lumpdata_remain[WRITE] / sizeof(T);
+        offset = CLAMP(offset, 0, elem_remain);
+        size_t written = Write(buffer, CLAMP(elements, 0, elem_remain - offset), offset);
         lumpdata_remain[WRITE] -= written;
         return written;
     }
@@ -252,7 +243,7 @@ public:
     // Overwrite the currently selected lump with a new one.
     // Does not affect write pointer.
     void SetLump(const lump_t& new_lump) {
-        SetWritePtr((ssize_t)OFFSETOF(dheader_t, lumps[lump_id]));
+        SetWritePtr((ssize_t)(&((dheader_t*)0)->lumps[lump_id]));
         lump = new_lump;
         Write(&new_lump, sizeof(lump_t));
         RevertWritePtr();
@@ -269,8 +260,8 @@ public:
     // Does not affect write pointer.
     // Clamps the index to a valid range.
     void SetLumpElement(const T& new_elem, size_t index) {
-        index = CLAMP(index, 0, indexof(sizeof(T), lumpdata_size));
-        SetWritePtr(lumpdata_off + arraysize(sizeof(T), index));
+        index = CLAMP(index, 0, lumpdata_num);
+        SetWritePtr(lumpdata_off + index * sizeof(T));
         Write(new_elem, sizeof(T));
         RevertWritePtr();
     }
@@ -280,11 +271,20 @@ public:
     // Does not affect read pointer.
     // Clamps the index to a valid range.
     constexpr T GetLumpElement(size_t index) {
-        index = CLAMP(index, 0, indexof(sizeof(T), lumpdata_size));
-        SetReadPtr(lumpdata_off + arraysize(sizeof(T), index));
+        index = CLAMP(index, 0, lumpdata_num);
+        SetReadPtr(lumpdata_off + index * sizeof(T));
         T elem;
         Read(&elem, sizeof(T));
         RevertReadPtr();
         return elem;
+    }
+
+    template<typename T>
+    constexpr T* GetAllLumpElements() {
+        T *buffer = new T[lumpdata_num];
+        SetReadPtr(lumpdata_off);
+        Read(buffer, lumpdata_num);
+        RevertReadPtr();
+        return buffer;
     }
 };

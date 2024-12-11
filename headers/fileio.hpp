@@ -1,12 +1,21 @@
 #pragma once
 #include <stdio.h>
+#include <stdlib.h>
 #include <cstring>
+
+#define NULLIFYSTACK(array) \
+    memset(array, 0, sizeof(array))
+#define COPYSTACK(array, other) \
+    memcpy(array, other, sizeof(array))
+#define STRSTACKCPY(str, other) \
+    strncpy(str, other, sizeof(str) - 1)
 
 class File
 {
 private:
     FILE *fileptr;
     size_t size;
+    char mode[4];
     char filepath[256];
 
 protected:
@@ -16,19 +25,29 @@ protected:
     // Access with <member>[READ] and <member>[WRITE]
 
 public:
-    // File is always opened in read and write mode
     File(const char *__restrict__ path)
     {
-        fileptr = fopen(path, "wb+");
-        if (fileptr == nullptr)
-            return;
+        NULLIFYSTACK(mode);
+        STRSTACKCPY(mode, "rb+");
+        STRSTACKCPY(filepath, path);
+        if (Exists(path))
+            fileptr = fopen(path, "rb+");
+        else if (Accessible(path))
+            fileptr = fopen(path, "wb+");
+        else
+        {
+            perror("fopen");
+            abort();
+        }
 
         fseek(fileptr, 0, SEEK_END);
         size = ftell(fileptr);
         fseek(fileptr, 0, SEEK_SET);
 
-        memset(filepath, 0, sizeof(filepath));
-        strncpy(filepath, path, sizeof(filepath) - 1);
+        NULLIFYSTACK(seek);
+        NULLIFYSTACK(old_seek);
+        NULLIFYSTACK(count);
+
     }
     virtual ~File()
     {
@@ -36,10 +55,11 @@ public:
             fclose(fileptr);
         fileptr = nullptr;
         size = 0;
-        memset(seek, 0, sizeof(seek));
-        memset(old_seek, 0, sizeof(old_seek));
-        memset(count, 0, sizeof(count));
-        memset(filepath, 0, sizeof(filepath));
+        NULLIFYSTACK(seek);
+        NULLIFYSTACK(old_seek);
+        NULLIFYSTACK(count);
+        NULLIFYSTACK(filepath);
+        NULLIFYSTACK(mode);
     }
 
     enum
@@ -50,12 +70,13 @@ public:
 
     File(const File &other)
     {
-        fileptr = fopen(other.filepath, "wb+");
+        fileptr = fopen(other.filepath, other.mode);
         size = other.size;
-        memcpy(seek, other.seek, sizeof(seek));
-        memcpy(old_seek, other.old_seek, sizeof(other.old_seek));
-        memcpy(count, other.count, sizeof(count));
-        strncpy(filepath, other.filepath, sizeof(filepath));
+        COPYSTACK(seek, other.seek);
+        COPYSTACK(old_seek, other.old_seek);
+        COPYSTACK(count, other.count);
+        STRSTACKCPY(filepath, other.filepath);
+        STRSTACKCPY(mode, other.mode);
     }
 
     File& operator=(const File& other)
@@ -65,12 +86,13 @@ public:
             if (fileptr != nullptr)
                 fclose(fileptr);
 
-            fileptr = fopen(other.filepath, "wb+");
+            fileptr = fopen(other.filepath, other.mode);
             size = other.size;
-            memcpy(seek, other.seek, sizeof(seek));
-            memcpy(old_seek, other.old_seek, sizeof(other.old_seek));
-            memcpy(count, other.count, sizeof(count));
-            strncpy(filepath, other.filepath, sizeof(filepath));
+            COPYSTACK(seek, other.seek);
+            COPYSTACK(old_seek, other.old_seek);
+            COPYSTACK(count, other.count);
+            STRSTACKCPY(filepath, other.filepath);
+            STRSTACKCPY(mode, other.mode);
         }
         return *this;
     }
@@ -79,17 +101,19 @@ public:
     {
         fileptr = other.fileptr;
         size = other.size;
-        memcpy(seek, other.seek, sizeof(seek));
-        memcpy(old_seek, other.old_seek, sizeof(old_seek));
-        memcpy(count, other.count, sizeof(count));
-        strncpy(filepath, other.filepath, sizeof(filepath));
+        COPYSTACK(seek, other.seek);
+        COPYSTACK(old_seek, other.old_seek);
+        COPYSTACK(count, other.count);
+        STRSTACKCPY(filepath, other.filepath);
+        STRSTACKCPY(mode, other.mode);
 
         other.fileptr = nullptr;
         other.size = 0;
-        memset(other.seek, 0, sizeof(other.seek));
-        memset(other.old_seek, 0, sizeof(other.old_seek));
-        memset(other.count, 0, sizeof(other.count));
-        memset(other.filepath, 0, sizeof(other.filepath));
+        NULLIFYSTACK(other.seek);
+        NULLIFYSTACK(other.old_seek);
+        NULLIFYSTACK(other.count);
+        NULLIFYSTACK(other.filepath);
+        NULLIFYSTACK(other.mode);
     }
 
     File& operator=(File&& other) noexcept
@@ -101,17 +125,19 @@ public:
 
             fileptr = other.fileptr;
             size = other.size;
-            memcpy(seek, other.seek, sizeof(seek));
-            memcpy(old_seek, other.old_seek, sizeof(other.old_seek));
-            memcpy(count, other.count, sizeof(count));
-            strncpy(filepath, other.filepath, sizeof(filepath));
+            COPYSTACK(seek, other.seek);
+            COPYSTACK(old_seek, other.old_seek);
+            COPYSTACK(count, other.count);
+            STRSTACKCPY(filepath, other.filepath);
+            STRSTACKCPY(mode, other.mode);
 
             other.fileptr = nullptr;
             other.size = 0;
-            memset(other.seek, 0, sizeof(other.seek));
-            memset(other.old_seek, 0, sizeof(other.old_seek));
-            memset(other.count, 0, sizeof(other.count));
-            memset(other.filepath, 0, sizeof(other.filepath));
+            NULLIFYSTACK(other.seek);
+            NULLIFYSTACK(other.old_seek);
+            NULLIFYSTACK(other.count);
+            NULLIFYSTACK(other.filepath);
+            NULLIFYSTACK(other.mode);
         }
         return *this;
     }
@@ -158,15 +184,6 @@ public:
         seek[WRITE] = old_seek[WRITE];
     }
 
-    inline void Update() {
-        fclose(fileptr);
-        fileptr = fopen(filepath, "wb+");
-    }
-
-    inline constexpr bool IsValid() const {
-        return fileptr != nullptr;
-    }
-
     template<typename T>
     constexpr size_t Read(const T *buffer, size_t elements = 1, ssize_t element_offset = 0) {
         seek[READ] += element_offset * sizeof(T);
@@ -194,38 +211,73 @@ public:
     typedef char (*transform_t)(char, unsigned int, size_t);
     // transformer_func is a function pointer (can be nullptr/NULL) which takes in as an input the character, its index inside the block, and the index of its block, and outputs a character.
     // A return value of 0 indicates the function worked properly.
-    int Backup(const char *__restrict__ append, const size_t block_size = BUFSIZ, transform_t transformer_func = nullptr) {
-        char *buffer = new char[block_size]{};
+    int Backup(const char *__restrict__ append, const size_t block_size = BUFSIZ, bool overwrite = false, transform_t transformer_func = nullptr) {
+        char *buffer = new char[block_size];
+        memset(buffer, 0, block_size);
         strncpy(buffer, filepath, block_size);
         strncat(buffer, append, block_size - strlen(filepath));
         if (strcmp(buffer, filepath) == 0)
             return 1;
-        FILE *backup = fopen(buffer, "wb");
 
+        FILE *backup = nullptr;
+        if (overwrite)
+            backup = fopen(buffer, "wb");
+        else
+        {
+            backup = fopen(buffer, "rb");
+        }
         size_t transfered = 0;
+        memset(buffer, 0, block_size);
+        fseek(fileptr, 0, SEEK_SET);
         if (transformer_func == nullptr)
         {
-            while ((transfered = fread(buffer, sizeof(char), block_size, fileptr)) > 0)
+            while ((transfered = fread(buffer, 1, block_size, fileptr)) > 0)
             {
-                fwrite(buffer, transfered, sizeof(char), backup);
+                fwrite(buffer, 1, transfered, backup);
             }
         }
         else
         {
             size_t index = 0;
-            while ((transfered = fread(buffer, sizeof(char), block_size, fileptr)) > 0)
+            while ((transfered = fread(buffer, 1, block_size, fileptr)) > 0)
             {
                 for (size_t i = 0; i < transfered; i++)
                 {
                     buffer[i] = transformer_func(buffer[i], i, index);
                 }
                 index++;
-                fwrite(buffer, transfered, sizeof(char), backup);
+                fwrite(buffer, 1, transfered, backup);
             }
         }
 
         fclose(backup);
         delete[] buffer;
         return 0;
+    }
+
+    static bool Exists(const char *__restrict__ path) {
+        FILE *file = nullptr;
+        if ((file = fopen(path, "rb")) != nullptr)
+        {
+            fclose(file);
+            return true;
+        }
+        return false;
+    }
+    static bool Accessible(const char *__restrict__ path) {
+        FILE *file = nullptr;
+        // File exists
+        if ((file = fopen(path, "rb")) != nullptr)
+        {
+            fclose(file);
+            return true;
+        }
+        // File does not exist but can be created
+        if ((file = fopen(path, "wb")) != nullptr)
+        {
+            fclose(file);
+            return true;
+        }
+        return false;
     }
 };
