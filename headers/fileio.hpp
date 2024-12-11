@@ -13,6 +13,7 @@ protected:
     size_t count[2]; // Data-read and Data-written
     ssize_t seek[2]; // Read-seek and Write-seek
     ssize_t old_seek[2]; // For RevertReadPtr() and RevertWritePtr()
+    // Access with <member>[READ] and <member>[WRITE]
 
 public:
     // File is always opened in read and write mode
