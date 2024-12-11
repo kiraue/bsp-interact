@@ -54,6 +54,7 @@ private:
     size_t lumpdata_size;
     size_t lumpdata_off;
     size_t lumpdata_remain[2]; // How much remains in the lump that hasnt been read/written yet
+    // Access with lumpdata_remain[READ] or lumpdata_remain[WRITE]
     dheader_t *header;
     dgamelumpheader_t *gameheader;
 
