@@ -5,8 +5,6 @@
 #define HEADER_LUMPS 64
 #define IDBSPHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')
 #define IDPSBHEADER	('P'+('S'<<8)+('B'<<16)+('V'<<24))
-#define arraysize(SIZE, ELEMENT) ELEMENT * SIZE
-#define indexof(SIZE, ELEMENT) ELEMENT / SIZE
 #define CLAMP(x, min, max)  \
     ( (x) > (max) ? (max) : ( (x) < (min) ? (min) : (x) ) )
 
