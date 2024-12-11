@@ -32,20 +32,20 @@ struct dheader_t
 
 struct dgamelump_t
 {
-	int             id;        // gamelump ID
-	unsigned short  flags;     // flags
-	unsigned short  version;   // gamelump version
-	int             fileofs;   // offset to this gamelump
-	int             filelen;   // length
+	int             id;
+	unsigned short  flags;
+	unsigned short  version;
+	int             fileofs;
+	int             filelen;
 };
 
 struct dgamelumpheader_t
 {
-	int lumpCount;  // number of game lumps
+	int lumpCount;
 	dgamelump_t gamelump[];
 };
 
-// TODO: add handling for the game lump
+// TODO: add more handling for the game lump
 class Bsp : public File
 {
 private:
