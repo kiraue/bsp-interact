@@ -1,5 +1,5 @@
-#include "headers/bsp.hpp"
-#include "headers/bspdefs.hpp"
+#include "inc/bsp.hpp"
+#include "inc/bspdefs.hpp"
 #include <iostream>
 #include <stdlib.h>
 #include <vector>
@@ -28,6 +28,22 @@
 
 #define PROP_VERSION 10
 
+std::ostream& operator<<(std::ostream& os, const dbrushside_t& brushside) {
+    os << "planenum: " << brushside.planenum << ", texture info: " << brushside.texinfo << ", displacement info: " << brushside.dispinfo << ", bevel: " << (brushside.bevel == 1 ? "true" : "false");
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const dbrush_t& brush) {
+    os << "flags: " << brush.contents << ", brushsides index: " << brush.firstside << ", count: " << brush.numsides;
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const dgamelump_t& gamelump) {
+    char id[5] = {((char *)&gamelump.id)[3], ((char *)&gamelump.id)[2], ((char *)&gamelump.id)[1], ((char *)&gamelump.id)[0], '\0'};
+    os << "id: " << id << ", version: " << gamelump.version << ", flags: " << gamelump.flags << ", size: " << gamelump.filelen;
+    return os;
+}
+
 int main (int argc, char **argv)
 {
     if (argc != 2)
@@ -38,15 +54,39 @@ int main (int argc, char **argv)
     Bsp input(argv[1]);
 
     input.SelectLump<dbrush_t>(LUMP_BRUSHES);
-
     std::vector<dbrush_t> brushes = input.GetAllLumpElements<dbrush_t>();
+    int brushnum = input.GetElementCount();
+    input.SelectLump<dbrushside_t>(LUMP_BRUSHSIDES);
+    std::vector<dbrushside_t> brushsides = input.GetAllLumpElements<dbrushside_t>();
+    int brushsidenum = input.GetElementCount();
 
+    int brushid = 0;
     for (const auto& brush : brushes)
     {
-        std::cout << "Number of brushsides: " << brush.numsides << "\n";
+        std::cout << "Brush " << brushid << ": " << brush << "\n";
+        for (int i = 0; i < brush.numsides; i++)
+        {
+            std::cout << "Side " << i << ": " << brushsides[brush.firstside + i] << "\n";
+        }
+        std::cout << "\n";
+        brushid++;
     }
 
-    std::cout << "Finished" << std::endl;
+    std::vector<dgamelump_t> gamelumps = input.GetAllGameLumps();
+    int gameid = 0;
+    for (const auto &gamelump : gamelumps)
+    {
+        std::cout << "Gamelump " << gameid << ": " << gamelump << "\n";
+        gameid++;
+    }
+    std::cout << "\n";
+
+    std::cout << "Number of brushes: " << brushnum << "\n";
+    std::cout << "Number of brushsides: " << brushsidenum << "\n";
+    std::cout << "Number of visclusers: " << input.GetVisClusterCount() << "\n";
+    std::cout << "Number of gamelumps: " << input.GetGameLumpCount() << "\n";
+
+    std::cout << std::endl << "Finished" << std::endl;
 
     return 0;
 }
