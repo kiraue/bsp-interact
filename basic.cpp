@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <vector>
 
+// For future error handling.
 #define ERROR(x, func) \
     if ((x) < 0)       \
     {                  \
