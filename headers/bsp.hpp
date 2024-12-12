@@ -1,12 +1,15 @@
 #pragma once
 #include "fileio.hpp"
 #include <cstring>
+#include <vector>
 
 #define HEADER_LUMPS 64
 #define IDBSPHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')
 #define IDPSBHEADER	('P'+('S'<<8)+('B'<<16)+('V'<<24))
 #define CLAMP(x, min, max)  \
     ( (x) > (max) ? (max) : ( (x) < (min) ? (min) : (x) ) )
+#define CPTRCAST(x, TYPE)   \
+    ( *(TYPE *)&x )
 
 struct lump_l4d2_t;
 struct lump_t;
@@ -79,84 +82,84 @@ struct dgamelumpheader_t
 };
 
 enum
-    {
-        LUMP_ENTITIES,
-        LUMP_PLANES,
-        LUMP_TEXDATA,
-        LUMP_VERTEXES,
-        LUMP_VISIBILITY,
-        LUMP_NODES,
-        LUMP_TEXINFO,
-        LUMP_FACES,
-        LUMP_LIGHTING,
-        LUMP_OCCLUSION,
-        LUMP_LEAFS,
-        LUMP_FACEIDS,
-        LUMP_EDGES,
-        LUMP_SURFEDGES,
-        LUMP_MODELS,
-        LUMP_WORLDLIGHTS,
-        LUMP_LEAFFACES,
-        LUMP_LEAFBRUSHES,
-        LUMP_BRUSHES,
-        LUMP_BRUSHSIDES,
-        LUMP_AREAS,
-        LUMP_AREAPORTALS,
-        LUMP_PORTALS,
-        LUMP_UNUSED0 = 22,
-        LUMP_PROPCOLLISION = 22,
-        LUMP_CLUSTERS,
-        LUMP_UNUSED1 = 23,
-        LUMP_PROPHULLS = 23,
-        LUMP_PORTALVERTS,
-        LUMP_UNUSED2 = 24,
-        LUMP_FAKEENTITIES = 24,
-        LUMP_PROPHULLVERTS = 24,
-        LUMP_CLUSTERPORTALS,
-        LUMP_UNUSED3 = 25,
-        LUMP_PROPTRIS = 25,
-        LUMP_DISPINFO,
-        LUMP_ORIGINALFACES,
-        LUMP_PHYSDISP,
-        LUMP_PHYSCOLLIDE,
-        LUMP_VERTNORMALS,
-        LUMP_VERTNORMALINDICES,
-        LUMP_DISP_LIGHTMAP_ALPHAS,
-        LUMP_DISP_VERTS,
-        LUMP_DISP_LIGHTMAP_SAMPLE_POSITIONS,
-        LUMP_GAME_LUMP,
-        LUMP_LEAFWATERDATA,
-        LUMP_PRIMITIVES,
-        LUMP_PRIMVERTS,
-        LUMP_PRIMINDICES,
-        LUMP_PAKFILE,
-        LUMP_CLIPPORTALVERTS,
-        LUMP_CUBEMAPS,
-        LUMP_TEXDATA_STRING_DATA,
-        LUMP_TEXDATA_STRING_TABLE,
-        LUMP_OVERLAYS,
-        LUMP_LEAFMINDISTTOWATER,
-        LUMP_FACE_MACRO_TEXTURE_INFO,
-        LUMP_DISP_TRIS,
-        LUMP_PHYSCOLLIDESURFACE,
-        LUMP_PROP_BLOB = 49,
-        LUMP_WATEROVERLAYS,
-        LUMP_LIGHTMAPPAGES,
-        LUMP_LEAF_AMBIENT_INDEX_HDR = 51,
-        LUMP_LIGHTMAPPAGEINFOS,
-        LUMP_LEAF_AMBIENT_INDEX = 52,
-        LUMP_LIGHTING_HDR,
-        LUMP_WORLDLIGHTS_HDR,
-        LUMP_LEAF_AMBIENT_LIGHTING_HDR,
-        LUMP_LEAF_AMBIENT_LIGHTING,
-        LUMP_XZIPPAKFILE,
-        LUMP_FACES_HDR,
-        LUMP_MAP_FLAGS,
-        LUMP_OVERLAY_FADES,
-        LUMP_OVERLAY_SYSTEM_LEVELS,
-        LUMP_PHYSLEVEL,
-        LUMP_DISP_MULTIBLEND
-    };
+{
+    LUMP_ENTITIES,
+    LUMP_PLANES,
+    LUMP_TEXDATA,
+    LUMP_VERTEXES,
+    LUMP_VISIBILITY,
+    LUMP_NODES,
+    LUMP_TEXINFO,
+    LUMP_FACES,
+    LUMP_LIGHTING,
+    LUMP_OCCLUSION,
+    LUMP_LEAFS,
+    LUMP_FACEIDS,
+    LUMP_EDGES,
+    LUMP_SURFEDGES,
+    LUMP_MODELS,
+    LUMP_WORLDLIGHTS,
+    LUMP_LEAFFACES,
+    LUMP_LEAFBRUSHES,
+    LUMP_BRUSHES,
+    LUMP_BRUSHSIDES,
+    LUMP_AREAS,
+    LUMP_AREAPORTALS,
+    LUMP_PORTALS,
+    LUMP_UNUSED0 = 22,
+    LUMP_PROPCOLLISION = 22,
+    LUMP_CLUSTERS,
+    LUMP_UNUSED1 = 23,
+    LUMP_PROPHULLS = 23,
+    LUMP_PORTALVERTS,
+    LUMP_UNUSED2 = 24,
+    LUMP_FAKEENTITIES = 24,
+    LUMP_PROPHULLVERTS = 24,
+    LUMP_CLUSTERPORTALS,
+    LUMP_UNUSED3 = 25,
+    LUMP_PROPTRIS = 25,
+    LUMP_DISPINFO,
+    LUMP_ORIGINALFACES,
+    LUMP_PHYSDISP,
+    LUMP_PHYSCOLLIDE,
+    LUMP_VERTNORMALS,
+    LUMP_VERTNORMALINDICES,
+    LUMP_DISP_LIGHTMAP_ALPHAS,
+    LUMP_DISP_VERTS,
+    LUMP_DISP_LIGHTMAP_SAMPLE_POSITIONS,
+    LUMP_GAME_LUMP,
+    LUMP_LEAFWATERDATA,
+    LUMP_PRIMITIVES,
+    LUMP_PRIMVERTS,
+    LUMP_PRIMINDICES,
+    LUMP_PAKFILE,
+    LUMP_CLIPPORTALVERTS,
+    LUMP_CUBEMAPS,
+    LUMP_TEXDATA_STRING_DATA,
+    LUMP_TEXDATA_STRING_TABLE,
+    LUMP_OVERLAYS,
+    LUMP_LEAFMINDISTTOWATER,
+    LUMP_FACE_MACRO_TEXTURE_INFO,
+    LUMP_DISP_TRIS,
+    LUMP_PHYSCOLLIDESURFACE,
+    LUMP_PROP_BLOB = 49,
+    LUMP_WATEROVERLAYS,
+    LUMP_LIGHTMAPPAGES,
+    LUMP_LEAF_AMBIENT_INDEX_HDR = 51,
+    LUMP_LIGHTMAPPAGEINFOS,
+    LUMP_LEAF_AMBIENT_INDEX = 52,
+    LUMP_LIGHTING_HDR,
+    LUMP_WORLDLIGHTS_HDR,
+    LUMP_LEAF_AMBIENT_LIGHTING_HDR,
+    LUMP_LEAF_AMBIENT_LIGHTING,
+    LUMP_XZIPPAKFILE,
+    LUMP_FACES_HDR,
+    LUMP_MAP_FLAGS,
+    LUMP_OVERLAY_FADES,
+    LUMP_OVERLAY_SYSTEM_LEVELS,
+    LUMP_PHYSLEVEL,
+    LUMP_DISP_MULTIBLEND
+};
 
 // TODO: add more handling for the game lump
 // add handling for different versions from other games
@@ -171,6 +174,7 @@ private:
     size_t lumpdata_remain[2]; // How much remains in the lump that hasnt been read/written yet
     dheader_t *header;
     dgamelumpheader_t *gameheader;
+    std::vector<char> lumpdata;
 
 public:
     Bsp(const char *__restrict__ path) : File(path)
@@ -185,6 +189,10 @@ public:
         lump = header->lumps[LUMP_ENTITIES];
         lumpdata_off = lump.fileofs;
         lumpdata_remain[READ] = lumpdata_remain[WRITE] = lumpdata_num = lumpdata_size = lump.filelen;
+        SetReadPtr(lumpdata_off);
+        lumpdata.reserve(lumpdata_size);
+        Read(lumpdata.data(), lumpdata_size);
+        RevertReadPtr();
     }
 
     ~Bsp()
@@ -213,6 +221,9 @@ public:
         lumpdata_off = lump.fileofs;
         lumpdata_num = lumpdata_size / sizeof(T);
         lumpdata_remain[READ] = lumpdata_remain[WRITE] = lumpdata_size;
+        SetReadPtr(lumpdata_off);
+        lumpdata.reserve(lumpdata_size);
+        Read<char>(lumpdata.data(), lumpdata_size);
         SetReadPtr(lumpdata_off);
         SetWritePtr(lumpdata_off);
     }
@@ -314,11 +325,12 @@ public:
     }
 
     template<typename T>
-    T* GetAllLumpElements() {
-        T *buffer = new T[lumpdata_num];
-        SetReadPtr(lumpdata_off);
-        Read(buffer, lumpdata_num);
-        RevertReadPtr();
-        return buffer;
+    // This function can be pretty slow.
+    // Does not affect read pointer.
+    std::vector<T> GetAllLumpElements() {
+        std::vector<T> result(lumpdata_num);
+        // TODO: replace this.
+        memcpy(result.data(), lumpdata.data(), lumpdata_size);
+        return result;
     }
 };
