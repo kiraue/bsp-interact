@@ -142,50 +142,50 @@ public:
         return *this;
     }
 
-    inline constexpr size_t GetSize() const {
+    inline size_t GetSize() const {
         return size;
     }
 
-    inline constexpr const char* GetPath() const {
+    inline const char* GetPath() const {
         return filepath;
     }
 
-    inline constexpr ssize_t GetReadPtr() const {
+    inline ssize_t GetReadPtr() const {
         return seek[READ];
     }
 
-    inline constexpr ssize_t GetWritePtr() const {
+    inline ssize_t GetWritePtr() const {
         return seek[WRITE];
     }
 
-    inline constexpr void SetReadPtr(ssize_t offset) {
+    inline void SetReadPtr(ssize_t offset) {
         old_seek[READ] = seek[READ];
         seek[READ] = offset;
     }
 
-    inline constexpr void SetWritePtr(ssize_t offset) {
+    inline void SetWritePtr(ssize_t offset) {
         old_seek[WRITE] = seek[WRITE];
         seek[WRITE] = offset;
     }
 
-    inline constexpr size_t GetReadBytes() const {
+    inline size_t GetReadBytes() const {
         return count[READ];
     }
 
-    inline constexpr size_t GetWrittenBytes() const {
+    inline size_t GetWrittenBytes() const {
         return count[WRITE];
     }
 
-    inline constexpr void RevertReadPtr() {
+    inline void RevertReadPtr() {
         seek[READ] = old_seek[READ];
     }
 
-    inline constexpr void RevertWritePtr() {
+    inline void RevertWritePtr() {
         seek[WRITE] = old_seek[WRITE];
     }
 
     template<typename T>
-    constexpr size_t Read(const T *buffer, size_t elements = 1, ssize_t element_offset = 0) {
+    size_t Read(const T *buffer, size_t elements = 1, ssize_t element_offset = 0) {
         seek[READ] += element_offset * sizeof(T);
         fseek(fileptr, seek[READ], SEEK_SET);
 
@@ -197,7 +197,7 @@ public:
     };
 
     template<typename T>
-    constexpr size_t Write(const T *buffer, size_t elements = 1, ssize_t element_offset = 0) {
+    size_t Write(const T *buffer, size_t elements = 1, ssize_t element_offset = 0) {
         seek[WRITE] += element_offset * sizeof(T);
         fseek(fileptr, seek[WRITE], SEEK_SET);
 
@@ -224,7 +224,10 @@ public:
             backup = fopen(buffer, "wb");
         else
         {
-            backup = fopen(buffer, "rb");
+            if (Exists(buffer))
+                return 2;
+            else
+                backup = fopen(buffer, "wb");
         }
         size_t transfered = 0;
         memset(buffer, 0, block_size);
