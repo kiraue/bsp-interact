@@ -1,7 +1,13 @@
 #pragma once
+
+#ifndef BSP_INTERACT_H
+#define BSP_INTERACT_H
+
 #include "fileio.hpp"
+#include "bspdefs.hpp"
 #include <cstring>
 #include <vector>
+#include <iostream>
 
 #define HEADER_LUMPS 64
 #define IDBSPHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')
@@ -55,8 +61,6 @@ lump_l4d2_t::operator lump_t() const {
     memcpy(&result.fourCC, fourCC, 4);
     return result;
 }
-
-
 
 struct dheader_t
 {
@@ -213,6 +217,8 @@ public:
         return header->ident;
     }
 
+    // Always use this before interacting with the bsp.
+    // By default, the chosen lump is the entity lump.
     template<typename T>
     void SelectLump(char n) {
         lump_id = n;
@@ -236,31 +242,33 @@ public:
         return lumpdata_num;
     }
 
-    template<typename T, size_t elements>
     // Offset is calculated by sizeof(T) * offset, its not in raw bytes.
     // Elements is the number of elements, this function is meant to be used with arrays.
     // Returns the amount of bytes read.
     // Value can be less than expected since this function will make sure to not read data outside of the range of the lump.
     // This does increase the read pointer by the correct amount.
-    size_t ReadLumpElements(const T *buffer, size_t offset = 0) {
+    template<typename T>
+    size_t ReadLumpElements(const T *buffer, size_t elements = 1, size_t offset = 0) {
         size_t elem_remain = lumpdata_remain[READ] / sizeof(T);
         offset = CLAMP(offset, 0, elem_remain);
-        size_t read = Read(buffer, CLAMP(elements, 0, elem_remain - offset), offset);
+        elements = CLAMP(elements, 0, elem_remain - offset);
+        size_t read = Read(buffer, elements, offset);
         lumpdata_remain[READ] -= read;
         return read;
     }
 
-    template<typename T, size_t elements>
     // Offset is calculated by sizeof(T) * offset, its not in raw bytes.
     // Elements is the number of elements, this function is meant to be used with arrays.
     // Automaticly rewrites the lump if the size (in bytes) of the written elements is different from the size of the previous elements.
     // Returns the amount of bytes written.
     // Value can be less than expected since this function will make sure to not write data outside of the range of the lump.
     // This does increase the write pointer by the correct amount.
-    size_t WriteLumpElements(const T *buffer, size_t offset = 0) {
+    template<typename T>
+    size_t WriteLumpElements(const T *buffer, size_t elements = 1, size_t offset = 0) {
         size_t elem_remain = lumpdata_remain[WRITE] / sizeof(T);
         offset = CLAMP(offset, 0, elem_remain);
-        size_t written = Write(buffer, CLAMP(elements, 0, elem_remain - offset), offset);
+        elements = CLAMP(elements, 0, elem_remain - offset);
+        size_t written = Write(buffer, elements, offset);
         lumpdata_remain[WRITE] -= written;
         return written;
     }
@@ -286,7 +294,6 @@ public:
     }
 
     // Overwrite the currently selected lump with a new one.
-    // Does not affect write pointer.
     void SetLump(const lump_t& new_lump) {
         SetWritePtr((ssize_t)(&((dheader_t*)0)->lumps[lump_id]));
         lump = new_lump;
@@ -295,15 +302,13 @@ public:
     }
 
     // Returns the currently selected lump.
-    // Does not affect read pointer.
     inline lump_t GetLump() const {
         return lump;
     }
 
-    template<typename T>
-    // Basicly equivalent to WriteLumpElements<T, 1>(buffer, index) except it can go backwards.
-    // Does not affect write pointer.
+    // Basicly equivalent to WriteLumpElements<T, 1>(buffer, index) except it can go backwards and it doesnt change the write pointer.
     // Clamps the index to a valid range.
+    template<typename T>
     void SetLumpElement(const T& new_elem, size_t index) {
         index = CLAMP(index, 0, lumpdata_num);
         SetWritePtr(lumpdata_off + index * sizeof(T));
@@ -311,10 +316,9 @@ public:
         RevertWritePtr();
     }
 
-    template<typename T>
-    // Basicly equivalent to ReadLumpElements<T, 1>(buffer, index) except it can go backwards.
-    // Does not affect read pointer.
+    // Basicly equivalent to ReadLumpElements<T, 1>(buffer, index) except it can go backwards and it doesnt change the read pointer.
     // Clamps the index to a valid range.
+    template<typename T>
     T GetLumpElement(size_t index) {
         index = CLAMP(index, 0, lumpdata_num);
         SetReadPtr(lumpdata_off + index * sizeof(T));
@@ -324,13 +328,52 @@ public:
         return elem;
     }
 
-    template<typename T>
     // This function can be pretty slow.
-    // Does not affect read pointer.
+    // May not work correctly with lumps that use variable length structures.
+    template<typename T>
     std::vector<T> GetAllLumpElements() {
         std::vector<T> result(lumpdata_num);
         // TODO: replace this.
         memcpy(result.data(), lumpdata.data(), lumpdata_size);
         return result;
     }
+
+    // Returns the byte offsets of the PVS and the PAS inside the vis lump.
+    std::vector<int[2]> GetVisData() {
+        int visnum = -1;
+
+        SetReadPtr(header->lumps[LUMP_VISIBILITY].fileofs);
+        Read(&visnum);
+
+        std::vector<int[2]> result(visnum);
+        Read<int[2]>(result.data(), visnum);
+
+        RevertReadPtr();
+
+        return result;
+    }
+    // TODO: add method to decompress the PVS and PAS
+
+    // Returns the number of visclusters
+    int GetVisClusterCount() {
+        int visnum = -1;
+
+        SetReadPtr(header->lumps[LUMP_VISIBILITY].fileofs);
+        Read(&visnum);
+        RevertReadPtr();
+
+        return visnum;
+    }
+
+    // Returns the number of gamelumps inside the bsp
+    int GetGameLumpCount() {
+        return gameheader->lumpCount;
+    }
+
+    // Returns all the gamelumps inside the bsp.
+    std::vector<dgamelump_t> GetAllGameLumps() {
+        return std::vector<dgamelump_t>(&gameheader->gamelump[0], &gameheader->gamelump[0] + gameheader->lumpCount);
+    }
 };
+
+#endif // BSP_INTERACT_H
