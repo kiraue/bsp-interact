@@ -1,4 +1,161 @@
+#pragma once
+#ifndef BSP_DEFINITIONS_H
+#define BSP_DEFINITIONS_H
+
+#define HEADER_LUMPS 64
+#define IDBSPHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')
+#define IDPSBHEADER	('P'+('S'<<8)+('B'<<16)+('V'<<24))
+
+enum
+{
+    LUMP_ENTITIES,
+    LUMP_PLANES,
+    LUMP_TEXDATA,
+    LUMP_VERTEXES,
+    LUMP_VISIBILITY,
+    LUMP_NODES,
+    LUMP_TEXINFO,
+    LUMP_FACES,
+    LUMP_LIGHTING,
+    LUMP_OCCLUSION,
+    LUMP_LEAFS,
+    LUMP_FACEIDS,
+    LUMP_EDGES,
+    LUMP_SURFEDGES,
+    LUMP_MODELS,
+    LUMP_WORLDLIGHTS,
+    LUMP_LEAFFACES,
+    LUMP_LEAFBRUSHES,
+    LUMP_BRUSHES,
+    LUMP_BRUSHSIDES,
+    LUMP_AREAS,
+    LUMP_AREAPORTALS,
+    LUMP_PORTALS,
+    LUMP_UNUSED0 = 22,
+    LUMP_PROPCOLLISION = 22,
+    LUMP_CLUSTERS,
+    LUMP_UNUSED1 = 23,
+    LUMP_PROPHULLS = 23,
+    LUMP_PORTALVERTS,
+    LUMP_UNUSED2 = 24,
+    LUMP_FAKEENTITIES = 24,
+    LUMP_PROPHULLVERTS = 24,
+    LUMP_CLUSTERPORTALS,
+    LUMP_UNUSED3 = 25,
+    LUMP_PROPTRIS = 25,
+    LUMP_DISPINFO,
+    LUMP_ORIGINALFACES,
+    LUMP_PHYSDISP,
+    LUMP_PHYSCOLLIDE,
+    LUMP_VERTNORMALS,
+    LUMP_VERTNORMALINDICES,
+    LUMP_DISP_LIGHTMAP_ALPHAS,
+    LUMP_DISP_VERTS,
+    LUMP_DISP_LIGHTMAP_SAMPLE_POSITIONS,
+    LUMP_GAME_LUMP,
+    LUMP_LEAFWATERDATA,
+    LUMP_PRIMITIVES,
+    LUMP_PRIMVERTS,
+    LUMP_PRIMINDICES,
+    LUMP_PAKFILE,
+    LUMP_CLIPPORTALVERTS,
+    LUMP_CUBEMAPS,
+    LUMP_TEXDATA_STRING_DATA,
+    LUMP_TEXDATA_STRING_TABLE,
+    LUMP_OVERLAYS,
+    LUMP_LEAFMINDISTTOWATER,
+    LUMP_FACE_MACRO_TEXTURE_INFO,
+    LUMP_DISP_TRIS,
+    LUMP_PHYSCOLLIDESURFACE,
+    LUMP_PROP_BLOB = 49,
+    LUMP_WATEROVERLAYS,
+    LUMP_LIGHTMAPPAGES,
+    LUMP_LEAF_AMBIENT_INDEX_HDR = 51,
+    LUMP_LIGHTMAPPAGEINFOS,
+    LUMP_LEAF_AMBIENT_INDEX = 52,
+    LUMP_LIGHTING_HDR,
+    LUMP_WORLDLIGHTS_HDR,
+    LUMP_LEAF_AMBIENT_LIGHTING_HDR,
+    LUMP_LEAF_AMBIENT_LIGHTING,
+    LUMP_XZIPPAKFILE,
+    LUMP_FACES_HDR,
+    LUMP_MAP_FLAGS,
+    LUMP_OVERLAY_FADES,
+    LUMP_OVERLAY_SYSTEM_LEVELS,
+    LUMP_PHYSLEVEL,
+    LUMP_DISP_MULTIBLEND
+};
+
+
 // Mostly copied from https://developer.valvesoftware.com/wiki/BSP_(Source)
+
+struct lump_l4d2_t;
+struct lump_t;
+
+struct lump_t
+{
+	int    fileofs;
+	int    filelen;
+	int    version;
+    union
+    {
+        char    fourCC[4];
+        int     compressed;
+    };
+
+    operator lump_l4d2_t() const;
+};
+
+struct lump_l4d2_t
+{
+	int	version;
+	int	fileofs;
+	int	filelen;
+	char	fourCC[4];
+
+    operator lump_t() const;
+};
+
+lump_t::operator lump_l4d2_t() const {
+    lump_l4d2_t result;
+    result.version = version;
+    result.fileofs = fileofs;
+    result.filelen = filelen;
+    memcpy(&result.fourCC, fourCC, 4);
+    return result;
+}
+
+lump_l4d2_t::operator lump_t() const {
+    lump_t result;
+    result.version = version;
+    result.fileofs = fileofs;
+    result.filelen = filelen;
+    memcpy(&result.fourCC, fourCC, 4);
+    return result;
+}
+
+struct dheader_t
+{
+	int     ident;
+	int     version;
+	lump_t  lumps[HEADER_LUMPS];
+	int     mapRevision;
+};
+
+struct dgamelump_t
+{
+	int             id;
+	unsigned short  flags;
+	unsigned short  version;
+	int             fileofs;
+	int             filelen;
+};
+
+struct dgamelumpheader_t
+{
+	int lumpCount;  // number of game lumps
+	dgamelump_t gamelump[];
+};
 
 struct Vector
 {
@@ -215,6 +372,230 @@ struct StaticPropLump_t
 	float           UniformScale;      // Prop scale
 #endif
 };
+
+struct StaticPropLumpV4_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// every version except v7*
+	unsigned char   Flags;
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+};
+struct StaticPropLumpV5_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// every version except v7*
+	unsigned char   Flags;
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+	float           ForcedFadeScale;   // fade distance scale
+};
+struct StaticPropLumpV6_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// every version except v7*
+	unsigned char   Flags;
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+	float           ForcedFadeScale;   // fade distance scale
+	// v6, v7, and v7* only
+	unsigned short  MinDXLevel;        // minimum DirectX version to be visible
+	unsigned short  MaxDXLevel;        // maximum DirectX version to be visible
+};
+struct StaticPropLumpV7_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+	float           ForcedFadeScale;   // fade distance scale
+	// v6, v7, and v7* only
+	unsigned short  MinDXLevel;        // minimum DirectX version to be visible
+	unsigned short  MaxDXLevel;        // maximum DirectX version to be visible
+	// since v7
+	color32         DiffuseModulation; // per instance color and alpha modulation
+};
+struct StaticPropLumpV7_star_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+	float           ForcedFadeScale;   // fade distance scale
+	// v6, v7, and v7* only
+	unsigned short  MinDXLevel;        // minimum DirectX version to be visible
+	unsigned short  MaxDXLevel;        // maximum DirectX version to be visible
+	// v7* only
+	unsigned int    Flags;
+	unsigned short  LightmapResX;      // lightmap image width
+	unsigned short	LightmapResY;      // lightmap image height
+	// since v7
+	color32         DiffuseModulation; // per instance color and alpha modulation
+};
+struct StaticPropLumpV8_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+	float           ForcedFadeScale;   // fade distance scale
+	// since v8
+	unsigned char   MinCPULevel;
+	unsigned char   MaxCPULevel;
+	unsigned char   MinGPULevel;
+	unsigned char   MaxGPULevel;
+	// since v7
+	color32         DiffuseModulation; // per instance color and alpha modulation
+};
+struct StaticPropLumpV9_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+	float           ForcedFadeScale;   // fade distance scale
+	// since v8
+	unsigned char   MinCPULevel;
+	unsigned char   MaxCPULevel;
+	unsigned char   MinGPULevel;
+	unsigned char   MaxGPULevel;
+	// since v7
+	color32         DiffuseModulation; // per instance color and alpha modulation
+	// v9 and v10 only
+	bool            DisableX360;       // if true, don't show on XBox 360 (4-bytes long)
+};
+struct StaticPropLumpV10_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+	float           ForcedFadeScale;   // fade distance scale
+	// since v8
+	unsigned char   MinCPULevel;
+	unsigned char   MaxCPULevel;
+	unsigned char   MinGPULevel;
+	unsigned char   MaxGPULevel;
+	// since v7
+	color32         DiffuseModulation; // per instance color and alpha modulation
+	// v9 and v10 only
+	bool            DisableX360;       // if true, don't show on XBox 360 (4-bytes long)
+	// since v10
+	unsigned int    FlagsEx;           // Further bitflags.
+};
+struct StaticPropLumpV11_t
+{
+	// v4
+	Vector          Origin;            // origin
+	QAngle          Angles;            // orientation (pitch yaw roll)
+	
+	// v4
+	unsigned short  PropType;          // index into model name dictionary
+	unsigned short  FirstLeaf;         // index into leaf array
+	unsigned short  LeafCount;
+	unsigned char   Solid;             // solidity type
+	// v4 still
+	int             Skin;              // model skin numbers
+	float           FadeMinDist;
+	float           FadeMaxDist;
+	Vector          LightingOrigin;    // for lighting
+	float           ForcedFadeScale;   // fade distance scale
+	// since v8
+	unsigned char   MinCPULevel;
+	unsigned char   MaxCPULevel;
+	unsigned char   MinGPULevel;
+	unsigned char   MaxGPULevel;
+	// since v7
+	color32         DiffuseModulation; // per instance color and alpha modulation
+	// since v10
+	unsigned int    FlagsEx;           // Further bitflags.
+	// since v11
+	float           UniformScale;      // Prop scale
+};
+
 
 struct dcubemapsample_t
 {
@@ -440,3 +821,5 @@ struct CDispTri
 {
 	unsigned short m_uiTags;		// Displacement triangle tags.
 };
+
+#endif // BSP_DEFINITIONS_H

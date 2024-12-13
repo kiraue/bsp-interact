@@ -9,161 +9,11 @@
 #include <vector>
 #include <iostream>
 
-#define HEADER_LUMPS 64
-#define IDBSPHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')
-#define IDPSBHEADER	('P'+('S'<<8)+('B'<<16)+('V'<<24))
+
 #define CLAMP(x, min, max)  \
     ( (x) > (max) ? (max) : ( (x) < (min) ? (min) : (x) ) )
 #define CPTRCAST(x, TYPE)   \
     ( *(TYPE *)&x )
-
-struct lump_l4d2_t;
-struct lump_t;
-
-struct lump_t
-{
-	int    fileofs;
-	int    filelen;
-	int    version;
-    union
-    {
-        char    fourCC[4];
-        int     compressed;
-    };
-
-    operator lump_l4d2_t() const;
-};
-
-struct lump_l4d2_t
-{
-	int	version;
-	int	fileofs;
-	int	filelen;
-	char	fourCC[4];
-
-    operator lump_t() const;
-};
-
-lump_t::operator lump_l4d2_t() const {
-    lump_l4d2_t result;
-    result.version = version;
-    result.fileofs = fileofs;
-    result.filelen = filelen;
-    memcpy(&result.fourCC, fourCC, 4);
-    return result;
-}
-
-lump_l4d2_t::operator lump_t() const {
-    lump_t result;
-    result.version = version;
-    result.fileofs = fileofs;
-    result.filelen = filelen;
-    memcpy(&result.fourCC, fourCC, 4);
-    return result;
-}
-
-struct dheader_t
-{
-	int     ident;
-	int     version;
-	lump_t  lumps[HEADER_LUMPS];
-	int     mapRevision;
-};
-
-struct dgamelump_t
-{
-	int             id;
-	unsigned short  flags;
-	unsigned short  version;
-	int             fileofs;
-	int             filelen;
-};
-
-struct dgamelumpheader_t
-{
-	int lumpCount;  // number of game lumps
-	dgamelump_t gamelump[];
-};
-
-enum
-{
-    LUMP_ENTITIES,
-    LUMP_PLANES,
-    LUMP_TEXDATA,
-    LUMP_VERTEXES,
-    LUMP_VISIBILITY,
-    LUMP_NODES,
-    LUMP_TEXINFO,
-    LUMP_FACES,
-    LUMP_LIGHTING,
-    LUMP_OCCLUSION,
-    LUMP_LEAFS,
-    LUMP_FACEIDS,
-    LUMP_EDGES,
-    LUMP_SURFEDGES,
-    LUMP_MODELS,
-    LUMP_WORLDLIGHTS,
-    LUMP_LEAFFACES,
-    LUMP_LEAFBRUSHES,
-    LUMP_BRUSHES,
-    LUMP_BRUSHSIDES,
-    LUMP_AREAS,
-    LUMP_AREAPORTALS,
-    LUMP_PORTALS,
-    LUMP_UNUSED0 = 22,
-    LUMP_PROPCOLLISION = 22,
-    LUMP_CLUSTERS,
-    LUMP_UNUSED1 = 23,
-    LUMP_PROPHULLS = 23,
-    LUMP_PORTALVERTS,
-    LUMP_UNUSED2 = 24,
-    LUMP_FAKEENTITIES = 24,
-    LUMP_PROPHULLVERTS = 24,
-    LUMP_CLUSTERPORTALS,
-    LUMP_UNUSED3 = 25,
-    LUMP_PROPTRIS = 25,
-    LUMP_DISPINFO,
-    LUMP_ORIGINALFACES,
-    LUMP_PHYSDISP,
-    LUMP_PHYSCOLLIDE,
-    LUMP_VERTNORMALS,
-    LUMP_VERTNORMALINDICES,
-    LUMP_DISP_LIGHTMAP_ALPHAS,
-    LUMP_DISP_VERTS,
-    LUMP_DISP_LIGHTMAP_SAMPLE_POSITIONS,
-    LUMP_GAME_LUMP,
-    LUMP_LEAFWATERDATA,
-    LUMP_PRIMITIVES,
-    LUMP_PRIMVERTS,
-    LUMP_PRIMINDICES,
-    LUMP_PAKFILE,
-    LUMP_CLIPPORTALVERTS,
-    LUMP_CUBEMAPS,
-    LUMP_TEXDATA_STRING_DATA,
-    LUMP_TEXDATA_STRING_TABLE,
-    LUMP_OVERLAYS,
-    LUMP_LEAFMINDISTTOWATER,
-    LUMP_FACE_MACRO_TEXTURE_INFO,
-    LUMP_DISP_TRIS,
-    LUMP_PHYSCOLLIDESURFACE,
-    LUMP_PROP_BLOB = 49,
-    LUMP_WATEROVERLAYS,
-    LUMP_LIGHTMAPPAGES,
-    LUMP_LEAF_AMBIENT_INDEX_HDR = 51,
-    LUMP_LIGHTMAPPAGEINFOS,
-    LUMP_LEAF_AMBIENT_INDEX = 52,
-    LUMP_LIGHTING_HDR,
-    LUMP_WORLDLIGHTS_HDR,
-    LUMP_LEAF_AMBIENT_LIGHTING_HDR,
-    LUMP_LEAF_AMBIENT_LIGHTING,
-    LUMP_XZIPPAKFILE,
-    LUMP_FACES_HDR,
-    LUMP_MAP_FLAGS,
-    LUMP_OVERLAY_FADES,
-    LUMP_OVERLAY_SYSTEM_LEVELS,
-    LUMP_PHYSLEVEL,
-    LUMP_DISP_MULTIBLEND
-};
 
 // TODO: add more handling for the game lump
 // add handling for different versions from other games
@@ -295,7 +145,7 @@ public:
 
     // Overwrite the currently selected lump with a new one.
     void SetLump(const lump_t& new_lump) {
-        SetWritePtr((ssize_t)(&((dheader_t*)0)->lumps[lump_id]));  // offsetof(dheader_t, lumps[lump_id])
+        SetWritePtr((ssize_t)(&((dheader_t*)0)->lumps[lump_id])); // offsetof(dheader_t, lumps[lump_id])
         lump = new_lump;
         Write(&new_lump, sizeof(lump_t));
         RevertWritePtr();
