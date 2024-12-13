@@ -295,7 +295,7 @@ public:
 
     // Overwrite the currently selected lump with a new one.
     void SetLump(const lump_t& new_lump) {
-        SetWritePtr((ssize_t)(&((dheader_t*)0)->lumps[lump_id]));
+        SetWritePtr((ssize_t)(&((dheader_t*)0)->lumps[lump_id]));  // offsetof(dheader_t, lumps[lump_id])
         lump = new_lump;
         Write(&new_lump, sizeof(lump_t));
         RevertWritePtr();
@@ -306,7 +306,7 @@ public:
         return lump;
     }
 
-    // Basicly equivalent to WriteLumpElements<T, 1>(buffer, index) except it can go backwards and it doesnt change the write pointer.
+    // Basicly equivalent to WriteLumpElements<T>(buffer, 1, index) except it can go backwards and it doesnt change the write pointer.
     // Clamps the index to a valid range.
     template<typename T>
     void SetLumpElement(const T& new_elem, size_t index) {
@@ -316,7 +316,7 @@ public:
         RevertWritePtr();
     }
 
-    // Basicly equivalent to ReadLumpElements<T, 1>(buffer, index) except it can go backwards and it doesnt change the read pointer.
+    // Basicly equivalent to ReadLumpElements<T>(buffer, 1, index) except it can go backwards and it doesnt change the read pointer.
     // Clamps the index to a valid range.
     template<typename T>
     T GetLumpElement(size_t index) {
