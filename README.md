@@ -1,4 +1,4 @@
-# BSP interact (aka bsp api (cpp) for now)
+# BSP interact
 A few c++ header files to help interacting with bsp files
 
 TODO:
