@@ -1,5 +1,5 @@
-#include "inc/bsp.hpp"
-#include "inc/bspdefs.hpp"
+#include "headers/bsp.hpp"
+#include "headers/bspdefs.hpp"
 #include <iostream>
 #include <stdlib.h>
 #include <vector>
